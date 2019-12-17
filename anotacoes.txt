@@ -1,0 +1,765 @@
+React / Redux {
+    ref: https://github.com/AleffBruno/mod07arquiteturaFluxRocketSeat
+    -- Como funciona o Redux {
+        > Dispara-se uma action , que é um objeto que tem obrigatoriamente a chave type com o seu valor(UNICO), as outras chaves sao os 'valores' da action {
+            ex: { type: 'ADD_TO_CART ', product: {id:1,name:'lapis'}}
+        }
+        > esse objeto é enviado para o redux store
+        > dentro do redux store, existem reducers, que é a separação dos estados dentro do redux store
+        > os reducers recebem a action e realiza a mutação dentro do estado
+        > apos isso, comunica todos os componentes que usam esse estado
+        > RESUMO : actions chamam reducers que mutam o estado
+    }
+
+    -- implementando redux {
+        > $ yarn add redux react-redux
+        arquitetura de pasta {
+            OBS: nao pode criar um store sem nenhum reducer
+            > foi criado uma pasta/arquivo dentro de src chamada store/index.js, e é onde sera feito a configuração inicial do redux ( veja o arquivo )
+            > cria-se dentro de store, uma pasta modules
+            > cria-se dentro de modules, cria-se o rootReducer.js onde ficarao todos os reducers ( veja o arquivo )
+        }
+        > importe {Provider} do react-redux, dentro de App.js
+        > coloque o 'Provider' em volta de todos os componentes da aplicação
+        > passe como parametro o arquivo de configuração que foi criado acima para a tag Provider ( veja o arquivo App.js )
+        > IMPORTANTE: para conectar componentes com o redux, é necessario ao exportalos, colocalos dentro de um 'connect' ( veja o arquivo Home/index.js)
+        > quando um componente tem o connect, em suas props ele agora tem o 'dispatch', que serve para disparar uma action ao redux ( veja o aruivo Home/index.js/handleAddProduct())
+        > quando um dispatch é disparado, TODOS OS REDUCERS SAO CHAMADOS, por isso é necessario colocar um switch dentro dos reducers para 'filtrar' somente oque aquele reducer deve fazer
+        ACESSANDO ESTADOS DE OUTROS COMPONENTES {
+            > coloque no componente desejado o 'connect'
+            > o connect aceita alguns parametros, o primeiro é uma funcao, que recebe um estado e retorna o estado atual do redux {
+                >> ( para saber o nome do reducer, basta olhar no root reducer) <<
+                ex: export default conenct(state => ({
+                        OBJETO_QUE_RECEBE_AS_INFORMAÇÕES: state.NOME_DO_REDUCER_QUE_QUER_O_ESTADO
+                    }))(NOME_DO_COMPONENTE)
+            }
+            > pronto, o 'OBJETO_QUE_RECEBE_AS_INFORMAÇÕES' agora esta disponivel nas props
+            DICA: o codigo acima é o famoso 'mapStateToProps' {
+                exemplo ( é o mesmo codigo acima so que mais organizado ) :
+
+                const mapStateToProps = state => ({
+                    OBJETO_QUE_RECEBE_AS_INFORMAÇÕES: state.NOME_DO_REDUCER_QUE_QUER_O_ESTADO
+                });
+
+                export default conenct(mapStateToProps)(NOME_DO_COMPONENTE)
+            }
+        }
+        > mapDispatchToProps, diferente do mapStateToProps, este converte ACTIONS do redux em props do componente ( veja o arquivo src\pages\Home\index.js) {
+            dica: em 'connect', se nao existir mapStateToProps, o primeiro parametro vai como null
+            ex: export default connect(null, mapDispatchToProps)(NOME_DO_COMPONENTE);
+
+            >>> AGORA AS ACTIONS ESTAO NAS PROPS
+            ex: props.addToCart (veja o arquivo src\pages\Home\index.js)
+        }
+
+        redux com react-hooks {
+            > RESUMO: useSelector assemelha-se a mapStateToProps e useDispatch assemelha-se a mapDispatchToProps
+            > useSelector {
+                > ao inves de de "import {connect} from 'react-redux'", sera utilizado "import {useSelector} from 'react-redux'",
+                > com isso, as informações nao estarão mais nas props ( anteriormente elas estariam pois era utilizado o mapStateToProps juntamente com o connect)
+                > agora fica: const nomeDaConst = useSelector(state => state.NOME_DO_REDUCER_QUE_QUER_O_ESTADO);
+            }
+            > useDispatch {
+                > ao inves de de "import {connect} from 'react-redux'", sera utilizado "import {useDispatch} from 'react-redux'",
+                > cria-se, const dispatch = useDispatch()
+                > agora para chamar as actions, basta utlizar dispatch(NOME_DA_ACTION);
+                ex: dispatch(CartActions.addToCartRequest(id));
+            }
+        }
+    }
+
+    -- debug {
+        $ yarn add reactotron-react-js reactotron-redux
+        > Cria- uma pasta config, e dentro dela um arquivo ReactotronConfig.js ( veja o arquivo )
+        > é necessario nas configuração do redux(src/store/index.js) habilitar createEnhancer() ( veja o arquivo )
+        > apos isso, va em App.js e importe as configurações do reactotron ( de preferencia que seja umas das primeira importações )
+        > uma coisa legal do reactotron e que pode-se 'subscribe' em um reducer para ficar escutando sempre que ele mudar, outra coisa é salvar o estado atual, ai quando a pagina der refresh, basta de-upar o estado antigo;
+    }
+
+    -- manipulando estados imutaveis para mutaveis {
+        $ yarn add immer
+    }
+
+    -- middlewares( com redux-saga ) {
+        > QUANDO SE USA O SAGA, O CODIGO DE NAVEGAÇÃO ENTRE PAGINAS, FICA DENTRO DO SAGA {
+            $ yarn add history ( utilizado para navegar o usuario de tela de TODOS os lugares)
+            > dentro de services, crie history.js ( veja o arquivo )
+            > id no App.js, importe o history que foi acabado de criar
+            > troque <BrowserRouter>, por <Router history={history}>
+            > agora pode-se navegar com 'import history from 'services/history' , history.push('/cart')
+        }
+        > pq usar o saga? saga serve para colocar 'coisas' asyncronas nas actions
+        > cria-se um arquivo rootSaga.js,armazena todos os sagas dentro de store/modules ( veja o arquivo )
+        > adicione 'createSagaMiddleware' em store/index.js ( veja o arquivo )
+        > adiciona rootSaga.js em store/index.js ( veja o arquivo )
+        > import applyMiddleware, compose from 'redux' em store/index.js ( veja o arquivo )
+        > middleware e um interceptador, mas em vez de interceptar rotas, intercepta actions
+        > sera utilizado o redux-saga
+        > $ yarn add redux-saga
+        > dentro do projeto atual, foi criado um arquivo 'sagas.js' dentro de src/store/modules/cart ( veja o  arquivo )
+        DICA >>>>>> {
+            > 'function*'(nome desse * é generator) , assemelha-se à 'async function', e agora o await torna-se 'yield'
+            > apos usar o yield, caso for uma chamada que seja necessario o 'await', chame em seguida call {
+                > import { call } from 'redux-saga/effects';
+                ex: const response = yield call(api.get, 'products/${id}')
+            }
+        } 
+        > NOVO FLUXO {
+            action chama sagas > sagas processa e chama reducer > reducer faz o processo no state > retorna a resposta
+        }
+        > Para disparar actions com saga, usa-se o put, "import { put } from 'redux-saga/effects'" {
+            ex: 
+            const response = yield call(api.get, 'products/${id}')
+            yield put(addToCartSuccess(response.data));
+        }
+        > COMO DISPARAR FUNÇÕES DE DENTRO DO SAGA {
+            > serao cadastrados 'listeners' dentro do metodo 'all', que ficarao ouvindo actions
+            > alguns metodos FAMOSOS sao o 'takeLatest' e 'takeEvery' {
+                > takeLatest = se clica 4x no botao, o saga leva em consideração so o ultimo click
+                > takeEvery = se clica 4x, os 4 click vale
+            }
+            > import { all, takeLatest, takeEvery } from 'redux-saga/effects';
+            > sintaxe = takeLatest(NOME_DA_ACTION_PARA_ESCUTAR, NOME_FUNCAO_PARA_DISPARAR)
+            > export default all([
+                takeLatest('@cart/ADD_REQUEST', addToCart)
+            ])
+        }
+        > COMO ACESSAR INFORMAÇÕES DO ESTADO DENTRO DO SAGA {
+            > import { select } from 'redux-saga/effects' : busca informações dentro do estado
+            > select recebe uma funcao que tem o estado como parametro e retorna algo dele
+            > ex: 
+            yield select ((ESTADO) => {return ESTADO.NOME_DO_REDUCER})
+            
+            yield select(
+                (state) => {return state.cart.find(p => p.id === id)}
+            )
+        }
+    }
+
+    -- reactotron-redux-saga {
+        > $ yarn add reactotron-redux-saga
+        > import no config/ReactotronConfig ( veja o arquivo )
+        > adicionar .use(reactotronSaga())
+        > ir src/store/index.js e criar a funcao sagaMonitor ( veja o arquivo )
+        > depois adicionar a funcao sagaMonitor em createSagaMiddleware
+    }
+
+    -- toasty / mensagens / alertas amigaveis {
+        > $ yarn add react-toastify
+        > em App.js, importe { ToastContainer } from 'react-toastify e adicione no 'meio' dos componentes existentes ( veja o arquivo )
+        > alem disso, adicione no global.js ( estilos globais), "import 'react-toastify/dist/ReactToastify.css"
+        > agora pode-se usar "import {toast} from 'react-toastify'", onde é necessario
+        > toast.error('SUA MSG AQUI')
+    }
+
+
+
+
+    daqui para baixo, as referencias de 'veja o arquivo', sao a partir da 'ref' abaixo
+    ref: https://github.com/AleffBruno/mod08reactHooksRocketseat
+    -- react-hooks {
+        hook useState {
+            > import { useState } from 'react';
+            > permite usar estado em componentes de funções ( antes so podia usar em componentes de classes)
+            > ex {
+                const [NOME_DO_ESTADO, NOME_DA_FUNCAO_PARA_ALTERAR_ESTADO] = useState(VALOR_DO_ESTADO);
+
+                const [tech, setTech] = useState(['ReactJS', 'React Native']);
+
+                {tech.map(valor => (
+                <li key={valor}>{valor}</li>
+                ))}
+
+                funcaoMudarEstadoDeTech = setTech([...tech, 'um valor novo aqui'])
+            }
+        }
+
+        hook useEffect {
+            > sobrepoe os metodos dos ciclos de vida
+            > import { useEffect } from 'react';
+            > simulando o 'componentDidUpdate' e 'componentDidMount' {
+                useEffect(funcao_que_sera_executada, quando_sera_executada)
+
+                > a funcao do primeiro parametro sempre sera ativada quando o valor de tech for alterado
+                useEffect(() => {
+                    localStorage.setItem('tech', JSON.stringify(tech))
+                }, [tech])
+
+                caso o segundo parametro do use effect seja um array vazio, ele é executado uma unica vez qd o componente é "montado"
+            }
+        }
+
+        hook useMemo {
+            > usado para executar funcoes SOMENTE em determinas circunstâncias
+            > import { useEffect } from 'react';
+            > sintaxe = const minhaVar = useEffect(() => {}, [variavel_para_ser_ouvida_quando_mudar_valor])
+            > const minhaVar = useEffect(() => meuArray.length, [variavel_para_ser_ouvida_quando_mudar_valor])
+            > agora a variavel 'minhaVar' so tera o seu valor alterado(recebendo o return na funcao), se o 'variavel_para_ser_ouvida_quando_mudar_valor' sofrer alguma alteraçÕ
+        }
+
+        hook useCallback {
+            > recomendado usar somente quando a funcao depende de variaveis do estado ou nas props
+            > usado para guardar funcoes na memoria SOMENTE em determinas circunstâncias
+            > import { useCallback } from 'react';
+            > ex {
+                const handleAdd = useCallback(() => {
+                    processamento que a funcao faz...
+                }, [VARIAVEIS_PARA_SEREM_OUVIDAS])
+            }
+            > a funcao acima so sera 'gerada' na memoria SE a/as VARIAVEIS_PARA_SEREM_OUVIDAS sofrerem alteração
+        }
+    }
+
+
+
+    
+    daqui para baixo, as referencias de 'veja o arquivo', sao a partir da 'ref' abaixo
+    ref: https://github.com/AleffBruno/introducaoAoReactRocketSeat
+
+    -- BASICAO DO REACT {
+        babel / webpack {
+            babel {
+                > pega funcionalidades do novo JS e converte de uma maneira que o browser entenda
+                > exemplo: classes no javascript, o browser nao entende isso, entao se usa o babel para ele converter esse codigo para o broser entender
+            }
+            webpack {
+                > cria o bundle, onde todo o codigo JS da aplicação se encontra
+                > 'ensina' ao javascript, como importar css,imagens e etc...
+                > live reload webpack dev server
+            }
+        }
+
+        iniciando {
+            $ yarn init -y
+            $ yarn add @babel/core @babel/preset-env @babel/preset-react webpack webpack-cli -D
+            $ yarn add react react-dom
+        }
+
+        configurando babel {
+            > cria-se um arquivo babel.config.js ( veja o arquivo )
+        }
+
+        configurando webpack {
+            > $ yarn add webpack-dev-server -D
+            > cria-se um arquivo webpack.config.js ( veja o arquivo )
+            > cria-se um "script" no package.json, >> "build": "webpack --mode production"
+            > apos adicionar o webpack-dev-server, cria-se um novo script,>> "dev": "webpack-dev-server --mode development"
+            --mode do webpack {
+                webpack --mode development, significa que vai gerar um arquivo mais legivel, para ambiente de desenvolvimento
+                webpack --mode production, gera um arquivo mais leve e inlegivel, que vai para produção
+            }
+        }
+
+        estrutura de pastas inicial {
+            > cria-se uma pasta src, e dentro cria-se um arquivo index.js
+        }
+
+        css dentro do webpack {
+            > $ yarn add style-loader css-loader -D
+            > ir em webpack.config.js, e adicionar uma nova rule ( ver arquivo )
+        }
+
+        imagens dentro do webpack {
+            > $ yarn add file-loader -D
+            > ir em webpack.config.js, e adicionar uma nova rule ( ver arquivo )
+        }
+
+        componentes {
+            > variaveis que um componente manipula é chamada de estado
+            > quando se guarda/manipula informações dentro de componentes do react, utiliza-se o estado(state)
+            > TODO ESTADO NO REACT É IMUTAVEL
+            > é OBRIGATORIO o nome 'state' para guardar os estados dentro desse objeto
+            > ao utilizar/declarar estados fora do contrutor, é necessario instalar "$ yarn add @babel/plugin-proposal-class-properties", pois o babel nao sabe oque é 'state' fora do construtor
+            > apos isso, adicione esse plugin em babel.config.js ( veja o arquivo )
+            > <> </>, sao tags sem nome, muito util quando se quer agrupar tags/componentes juntos
+            > manipulando valores dentro de inputs {
+                > cria-se uma nova chave no 'state' 
+                > cria-se um metodo para manipular esse valor ( necessario ser o metoto ser uma ARROW FUNCTION)
+                > atribua o metodo criado com o evento 'onChange' no input
+                > dentro da arrow function, usa-se o metodo setState para manipular o estado
+                > adicione um atributo 'value' no input , é o valor de 'value' é o estado no objeto que ele mesmo esta manipulando
+            }
+            > ATENÇÃO para 'chamar' as funçõesme botoes, cria-se uma arrow function, com a funcao que é para ser chamada
+            > ex: onClick={() => this.minhaFuncao()}
+            > propriedade é tudo que se passa pro componente dentro da tag ( ex: <meuComponente myProp={'hue'} >)
+            > para recuperar a propriedade no 'outro' component, é necessario acessar props.nomeDaProp || this.props.nodeDaProp
+            > funcoes que existe dentro de componentes 'filhos' tambem é necessario ser passados como propriedade (ex: onDelete={() => this.handleDelete(tech)} , dentro do componente filho, usa-sa props.onDelete)
+            > pode-se passar qualquer coisa como propriedade para outro componente ( tipo classes,funcoes,variaveis, outros componentes e etc...)
+            > props podem ter valores default, declara-se fora do componente: NomeDoComponente.defaultProps = {propKey: propValue}, VALIDO SOMENTE PARA COMPONENTES DE FUNÇÃO, dentro de componentes de classes, fica em static defaultProps = {propKey: propValue}
+        }
+
+        proptypes {
+            $ yarn add prop-types
+            > props types servem como uma 'interface' para o componente, para mostrar ao desenvolvedor quais propriedades aquele componente recebe ( ver exemplo em TechItem.js )
+            > propTypes sao escritas de maneiras diferentes em componentes de classes e funcoes
+        }
+
+        ciclos de vida / lifeCycles {
+            > componentDidMount : executa assim que o componente aparece na tela
+            > componentDidUpdate(oldProps,oldState) : executa sempre que tem alteração nas props ou estado
+            > componentWillUnmount : executando quando o componente deixa de existir
+        }
+    }
+
+
+
+
+    daqui para baixo, as referencias de 'veja o arquivo', sao a partir da 'ref' abaixo
+    ref: https://github.com/AleffBruno/primeiroProjectoComReactRocketseat
+
+    -- criando o projeto {
+        $  yarn create react-app {NOME_DO_PROJETO}
+    }
+
+    -- roteamento {
+        $ yarn add react-router-dom
+        > cria-se um arquivo routes.js dentro de src ( veja o arquivo )
+        > cria-se uma pasta chamada pages dentro de src, onde ficara as paginas
+        > 'chama' o componente de rotas dentro de App.js ( veja o arquivo )
+        > para enviar parametros nas rotas, se usa { Link }, e para acessa-los, é necessario 'pegar' no Componente que foi enviado o parametro a propriedade 'props.match', e dentro desse obj tem 'params', e é la que esta o valor
+    }
+
+    -- styled components {
+        > serve para estilizar os componentes dno react
+        $ yarn add styled-components
+        > instale a extensao no vsCode ( vscode-styled-components )
+        > cria-se estilos ( veja um exemplo em pages/main/style.js)
+        > Apos isso, se usa a tag criada no styledComponent ( veja o exemplo em pages/main/index.js )
+        > é possivel colocar atributos nos elementos a partir do styled components ( parecido com o attr do jQuery)
+        > & ( e comercial ) significa que se refere ao PROPRIO elemento (é como se fosse um 'this')
+        > animações {
+            importe { keyframes, css }, veja o exemplo em src/pages/main/style
+        }
+
+        estilos globais {
+            > cria-se uma pasta styles dentro de src, e dentro cria-se um arquivo global.js ( veja o arquivo )
+            > apos isso, se importa dentro de App.js ( veja o arquivo )
+        }
+    }
+
+    -- icones {
+        $ yarn add react-icons
+        > essa lib traz font-awesome, material icons, ionicons , etc...
+    }
+
+    -- requisições {
+        $ yarn add axios
+    }
+
+    -- debug react {
+        > procure na loja do google extensao no google Chorme : React Developer Tools
+    }
+
+
+}
+
+React-native {
+    ref: https://github.com/AleffBruno/mod06reactNative_rocketSeat
+    -- comandos principais {
+        > $ react-native run-android --help
+        > $ adb devices ( mostra os devices diponiveis )
+        > $ react-native run-android --deviceId=0051384697 ( [TALVEZ_BUG] roda o projeto em um device especifico  )
+        > $ react-native run-android ( roda o projeto em um android quando conectado via USB)
+        > $ adb shell input keyevent 82 ( abre o menu de debug no celular )
+    }
+
+    -- organização de pastas {
+        > cria-se uma pasta src, dentro cria-se index.js. Coloque o codigo do App.js dentro do index.js e depois delete App.js
+        > va em index.js (na raiz do projeto), e mude a referencia do import de './App' para './src'
+    }
+
+    -- debug {
+        > abra o menu de debug, em seguida escolha 'Debug' ou 'Debug JG remotely'
+
+        debug externo {
+            > sera usado a ferramenta Reactotron
+            > https://github.com/infinitered/reactotron
+            > Escolha: Quick start for React Native ( https://github.com/infinitered/reactotron/blob/master/docs/quick-start-react-native.md )
+            > faça o download do aplicativo para desktop (https://github.com/infinitered/reactotron/blob/master/docs/installing.md)
+            > se for windows, baixe .msi ou .exe
+            > apos isso, $ yarn add reactotron-react-native
+            > dentro de src, cria-se config/ReactotronConfig.js ( veja o arquivo )
+            > a variavel __DEV__ somente executa em ambiente de desenvolvimento
+            > importe ReactotronConfig.js dentro de src/index.js ( atente-se, que todos os imports ACIMA do import do ReactotronConfig.js NAO terão 'console.tron.log')
+            > se nao aparecer nada no reactotron, use no terminal $ adb reverse tcp:9090 tcp:9090
+        }
+    }
+
+    -- roteamento / rotas {
+        > cria-se dentro de src a pasta pages
+        > dentro da pasta pages, cria-se as pastas com as pages ( veja as pasta )
+        > dentro de src, cria-se o arquivo routes.js
+        > $ yarn add react-navigation
+        > apos isso entre no site do react-navigation para instalar o resto das rependencias ( muito parecido com essas : $ yarn add react-native-reanimated react-native-gesture-handler react-native-screens@^1.0.0-alpha.23)
+        IMPORTANTE PARA ANDROID {
+            To finalize installation of react-native-screens for Android, add the following two lines to dependencies section in android/app/build.gradle:
+                implementation 'androidx.appcompat:appcompat:1.1.0-rc01'
+                implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0-alpha02'
+            
+            To finalize installation of react-native-gesture-handler for Android, make the following modifications to MainActivity.java:
+        }
+        > apos isso, react-native run-android
+        > depois, escreva o arquivo routes.js ( veja o arquivo )
+        > tipos de navegação: abas, stack(botoes), drawwer(menu na esquerda), cada navegação tem a sua lib dentro do react-navigation
+        > NO EXEMPLO DO CURSO FOI UTILIZADO 'react-navigation-stack' , $ yarn add react-navigation-stack
+        > todo tipo de navegação fica dentro de "createAppContainer" ( veja o arquivo routes.js )
+        > importe route.js dentro de src/index.js ( veja o arquivo )
+    }
+
+    -- statusBar {
+        > barrinha de 'cima' que mostra bateria,horario e etc...
+        > para personalizar a status bar, pode-se importar StatusBar fo react-native
+        > import { StatusBar } from 'react-native', ( veja o arquivo src/index.js )
+    }
+
+    -- styled components {
+        > $ yarn add styled-components
+        > usabildiade parecida com a do react(normal)
+        > cria-se um styles.js dentro da pasta Main
+        > diferente do react da web, NAO É POSSIVEL CRIAR STYLED-COMPONENTS ALINHADOS
+        > nao existem estilos globais, porem pode-se criar componentes compartilhados por varias paginas
+    }
+
+    -- icones {
+        > $ yarn add react-native-vector-icons
+        > import Icon from 'react-native-vector-icons/MaterialIcons';
+        > para saber os icones, entre na documentação
+        SE OS ICONES NAO APARECEREM {
+            ref: https://github.com/oblador/react-native-vector-icons/issues/661
+            > va em android/app/build.gradle
+            > adicione na ultima linha em branco : apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+            > rode $ react-native run-android
+        }
+    }
+
+    -- loading {
+        > importa-se { ActivityIndicator } from 'react-native'
+        > cria um state de loading = false
+        > antes de começa a chamada, setState(loading: true), ao terminar a chamada, setState(loading: false)
+        > use um 'if', se loading = true, mostre o componente ActivityIndicator, se nao mostre o componente verdadeiro ( exemplo em Main/index.js )
+    }
+
+    -- async storage (segundo o curso) {
+        > $ yarn add @react-native-community/async-storage
+        > rode $ react-native run-android
+        > caso começe a quebrar o 'build', remove a node_modules e use 'npm i' ou 'yarn', apos isso, react-native run-android
+    }
+
+    -- navegação {
+        > VEJA A 'CHAVE' ROTAS NESSE ARQUIVO
+        > é feito usando o react-navigation
+        > pode-se ver em console.log(this.props) o chave navigation
+        > troca de pagina: this.props.navigation.navigate('{NOME_DA_PAGINA_CADASTRADA_EM_ROUTES.JS}',{OBJETO|PARAMETROS})
+        > recebe os dados na outra pagina : this.props.navigation.getParam('NOME_DO_PARAMETRO_PASSADO')
+        > ATENÇÃO COM METODOS STATIC {
+            caso seja necessario acessar o 'getParam' dentro de uma propriedade estatica
+            ex: static navigationOptions = {title: navigation.getParam('chave')} , ISSO FALHA
+            É necesario transformar em uma funcao
+            ex: static navigationOptions = ({ nagivation }) => ({ title: nagivation.getParam('chave') }), ISSO FUNCIONA
+        }
+    }
+
+    -- FUNCOES EM BOTOES {
+        caso uma funcao seja chamada diretamente
+        ex: <button onPress={this.myFunc(valur)}/> , ELA VAI SER EXECUTADA AUTOMATICAMENTE,
+        o correto seria 
+        ex: <button onPress={() => this.myFunc(valur)}/>
+
+        quando uma funcao NAO TEM PARENTESES ela é passada como referencia
+        ex: <button onPress={this.myFunc}/> << isso funciona
+        quando uma funcao TEM PARENTESES, é necessario criar uma arrow function
+        ex: <button onPress={() => this.myFunc(valur)}/>
+    }
+
+    -- propTypes {
+        parecida com a do react para web
+    }
+
+    -- dica sobre scroll infinito {
+        > adiciona-se as props {
+            onEndReachedThreshold={0.2} // Carrega mais itens quando chegar em 20% do fim
+            onEndReached={this.loadMore} // Função que carrega mais itens
+        } , no elemento FlatList
+        > cria um estado com o numero da pagina ( por padrão é 1)
+        > (opicional) cria um objeto no state contendo informções sobre a paginação
+        > cria uma funcao que faz chamada para API e aceita a pagina como parametro(por padrao é 1)
+        > ATENÇÃO PARA UNIR 2 ARRAYS NAS PROPS {
+            errado > [...value, value2]
+            correto > [...value, ...value2]
+        }
+        > cria uma funcao "carregarMais" que é chamada quando o scroll chega no fim da pagina
+        > esta funcao coloca page++ e chama a funcao que faz a request na API passando a page++ como parametro
+    }
+}
+
+Aplicação NODE {
+    ref: https://github.com/AleffBruno/goBarberBackendRocketSeat
+    -- gettingStart {
+        > inicia-se criando uma pasta "src" onde sera mantido o codigo da aplicação
+        > dentro de "src" cria-se app.js, routes.js, server.js
+        > dentro de app.js, cria-se o metodo de middlewares, onde ficara os middlewares globais
+        > dentro de app.js, tambem cria-se o metodo de rotas
+        > dentro de app.js tambem deve ser importato o arquivo de config/start dos bancos de dados
+        > foi dividido a parte onde e criado a 'estrutura da aplicação'(app.js) da parte onde e criado o servidor(server.js), pois isso ajuda na hora de implementar os testes, onde sera testado diretamente o app.js
+    }
+
+    -- trocando a sintaxe de 'require' para 'import' com sucrese ( tambem pode-se utilizar babel,babel-node,etc...)
+    sucrase {
+        > rodando $ yarn sucrase-node {PATH_SERVER}
+    }
+
+    -- nodemon {
+        > foi criado um arquivo de configuração do nodemon(nodemon.json) para interagir com o sucrase
+    }
+
+    -- seeds {
+        > Seeds sao recomendados para testes/dev, MAS NUNCA PARA PROD
+    }
+
+    -- controller {
+        > nao chama outro controller
+        > pode existir controllers sem models
+        > tem somente 5 metodos {
+            index/getAll
+            show/getOne
+            store/create
+            update
+            delete
+        }
+    }
+
+    -- organização de codigo {
+        > foi criado uma pasta app, dentro de src onde ficara o codigo da aplicação(como controllers,models)
+        > foi criado uma pasta config onde ficara as configurações da aplicação
+        > foi criada uma pasta database onde ficara tudo relacionado a database(como por exemplo migrations)
+    }
+
+    -- sequelize {
+        > $ yarn add sequelize
+        > $ yarn add sequelize-cli -D
+        > foi criado um arquivo chamado .sequelizerc, onde ficara algumas configuração do sequelize(abra o arquivo para ver)
+        > foi adicionado mais algumas configurações de database em config/database.js (abra o arquivo para ver)
+        > como neste projeto sera usado postgres, é necessario instalar 2 dependenciais...
+        $ yarn add pg pg-hstore
+        > FOI UTILIZADO UM POSTGRES AS A SERVICE NESTE projeto
+        site > https://www.elephantsql.com/  / logue-se com google , conta : cloudwedoemails
+    }
+
+    -- migrations {
+        > Cada migration deve fazer alterações em APENAS UMA TABELA
+        > criar migration {
+            $ yarn sequelize migration:create --name=create-users
+        }
+        > rodar migrations: $ yarn sequelize db:migrate
+        > retorna a ultima migration rodada : $ yarn sequelize db:migrate:undo
+        > apos a criação da migration, crie os models...
+    }
+
+    -- models {
+        > os models ficam dentro de src/app/models
+        > é necessario fazer a conexao com o banco e carregar os models, o arquivo de conexao fica em src/database/index.js
+        > os models esperam a variavel de conexao, elas serao passadas no arquivo src/database/index.js
+        > TODO NOVO MODEL CRIADO NECESSITA DE SER CHAMADO em 'src/database/index.js'
+        > apos configurar o arquivo de database, chame ele no app.js ( somente um import resolve, nao é necessario implementa-lo/chama-lo no codigo)
+        > crie os controllers....
+    }
+
+    -- controllers {
+        > crie os controllers com os metodos, e depois "faça o caminho" para os metodos utilizando as rotas
+    }
+
+    -- criptografandoSenhasComBcrypt {
+        > foi utilizado bcryptjs para criptografar as senhas dos usuarios
+        > apos instalar o bcrypt, adicione um attrib password e um hook no model de usuario
+        > no hook, antes de salvar, gere o hash do password
+    }
+
+    -- jwt {
+        > $ yarn add jsonwebtoken
+        > Cria-se um novo controller, SessionController ou afins
+        *porque nao cria um metodo no userController? Pq estamos criando uma sessao/autenticação, e nao criando um usuario, PENSE NA ENTIDADE que esta sendo criada/tratada no momento
+        > para gerar o token, é utilizado o metodo sign
+        > as configurações do token (senhaSecreta, expira em...), foram salvas em config/auth.js
+        > para verificar o token, é utilizado o metodo verify
+    }
+
+    -- middlewares {
+        > para verificar se o usuario esta logado ou nao, foi gerado um middleware de autenticação
+        > middlewares sao funcoes
+        > o middleware basicamente usa o jwt.verify para verificar o token, se nao for valido, joga erro
+        > ATENÇÃO: middlewares podem incluir/alterar informações no 'req', da requisição, no caso deste projeto,
+        ele adicionou a informação userId no req, ou seja, todas as rotas que usarem esse middleware, teração acesso a essa informação
+    }
+
+    >>>>> transformando uma funcao de callBack em async/await {
+        a funcao "verify" do jwt usa o retorno de callback, para transformar isso em async/await, foi utilizado
+        " import {promisify} from 'util' "
+    }
+
+    -- validações {
+        > foi utilizado a biblioteca yup neste projeto
+        > $ yarn add yup
+    }
+
+    -- uploadDeArquivos {
+        > foi usado a abordagem de upload(nesse caso de imagem) em uma rota em especifico
+        > para enviar arquivos, é necessario que a requisição seja no formato multipart-form-data
+        > biblioteca usada foi o multer : $ yarn add multer
+        > foi criado uma pasta 'tmp' no mesmo nivel de 'src', e dentro tem uma pasta chamada uploads
+        > dentro de src/config, foi criado um arquivo chamado multer.js, que é o arquivo de configuração do multer
+        > o multer é utilizado como middleware
+        > foi criado o FileController para poder enviar/salvar infofo no banco desse arquivo por esse controller
+        > foi criado uma tabela(com isso uma migration) nova no banco, depois cria-se a model
+        > para criar o relacionamento entre a tabela file e user, foi feito uma nova migration
+        > ATENTE-SE para colocar a nova coluna criada na model especifica
+    }
+
+    >>>>> LIBERANDO ACESSO(GET) A PASTA DE UPLOADS {
+        > é necessario utilizar um recurso do express, chamado express.static, que libera "todas" get para arquivos, estaticos(como imagem,pdf,css,etc...)
+        > foi adicionado um middleware(em app.js) com a funcao express.static, com isso liberando o acesso
+    }
+
+    -- ASSOCIAÇÃO COM SEQUELIZE {
+        > nestre projeto, foi criado uma funcao 'associate' na model user ( mais info, verifique documentação do sequelize ), para associar o usuario com file
+        > o metodo statico associate é utilizado em database/index.js, 
+        > é possivel por um 'apelido' no relacionamento(dentro do metodo statico associate)
+    }
+
+    >>>>> foi criado um controller para listar os provedores de servidor, porem eles sao usuarios, entao porque nao criar um metodo na controller de usuario?
+    Resposta: novamente, pense na ENTIDADE que esta sendo tratada, a entidade é provedor de servidor, qual usuario é um provedor de serviço, existe uma diferença entre dar um getAll users e getAll providers
+
+    >>>>> no model Appointments, foi usado a mesma estrategia do model User, para fazer a associação/referencia
+    com outro model, no caso usando afuncao associate
+
+    >>>>> enviando datas no postman/insomniaRest/curl {
+        sintaxe: {ano}-{mes}-{dia}T{hora}:{minuto}:{segundo}-{timezone}:{00}
+        exemplo: 2019-07-01T18:00:00-03:00
+    }
+
+    -- trabalhando com datas {
+        > $ yarn add date-fns@next
+        > startOfHour: pega SOMENTE a hora da data passada
+    }
+
+    -- paginação {
+        > a estrategia usada nesse projeto foi utilizar 'query string' para falar qual pagina quero paginar
+        url?page=1
+        > so serão listados 20 registros por pagina ( limit: 20 , limit é um parametro do sequelize)
+        > existe uma CHAVE com valor 'offset' no sequelize, que significa QUANTOS REGISTROS EU QUERO PULAR, tendo isso em mente, foi utilizado o calculo > (page - 1) * 20 <
+        > essa conta significa que, se estou na pagina 2, entao (2 - 1) * 20 = 20, pule 20 registros
+    }
+
+    -- mongoose {
+        > foi utilizado um segundo banco, no caso o mongoose
+        > as configurações do mongoose ficam em src/database/index.js
+    }
+
+    -- Schemas {
+        > pasta localiza-se em app/schemas
+        > os schemas sao semelhantes as models, porem nao é necessario migrations pois eles pertemcem a um banco noSQL
+    }
+
+    -- emails {
+        > $ yarn add nodemailer
+        > a configuração esta em config/mail.js
+        alguns exemplos de serviço de email {
+            Amazon SES, Mailgun, Sparkpost, Mandril
+        }
+        > para este projeto foi utilizado o Mailtrap ( SO FUNCIONA EM DEV )
+        > mailtrap.io
+        > para os templates de email usando HTML foi utilizado "handlebars"
+    }
+
+    >>>>> foi criad uma pasta "lib" dentro de src, onde serao configurado coisas adicionais {
+        por exemplo, a funcao de envio de email nao é feita no controller, o controller que chama a funcao de enviar o email
+    }
+
+    -- templateDeEmails {
+        > $ yarn add express-handlebars nodemailer-express-handlebars
+        > foi criado uma pasta [app/]"views" onde ficarão os templates de email
+        > froi criado uma funcao de configuraç~so de emails dentro de Mail.js
+    }
+
+    -- filas / backgroundJobs {
+        > utiliza-se em casos que é necessario tirar o "await", porem ainda quer ter controle daquele trecho de codigo
+        > exemplo: envio de e-mail para 50 pessoas, nao quero ter o await no "sendEmail", mas quero ter controle desses 50 envios
+        > para tratar isso, sera utilizado um banco chave/valor, nesse projeto foi utilizado o REDIS
+        > para fazer a interação com o REDIS, foi utilizado o bee-queue, que é uma ferramenta de fila dentro do node
+        > existem outras ferramentas de fila, como o queue, que é mais demorando porem mais rebusto em termos de funcionalidade
+        > $ yarn add bee-queue
+        > cada tipo de backgroundJob tem a sua propria fila 
+        > ex {
+            > o envio de cancelamento de email tem uma fila propria
+            > o envio de email de recuperação de senha, é em outra fila
+        }
+        > os trabalhos que ficam dentro de uma fila sao chamados de "JOB"
+        > foi criado uma pasta "jobs" dentro de app, dentro dessa pasta foi criado um "CancellationMail.js"
+        > para cada JOB é necessario uma chave unica
+        > dentro de "CancellationMail.js", foi criado um metodo handle, que sera a tarefa que sera executada, quando o processo for executado ( no caso, o codigo de enviar o email de cancelamento )
+        > foi criado uma variavelArray dentro de Queue.js que guarda todos os jobs
+        > a lib 'Bee-queue' dentro de Queue.js, espera a conexao com o REDIS
+        > foi criado um arquivo de conexao para se conectar com o REDIS, localiza-se dentro de config
+        > foi criado um arquivo queue.js no mesmo dentro de src ( porque desse arquivo? por que a aplicação nao vai executar no mesmo 'node' que a fila esta rodando, porque a fila pode estar em um servidor diferente)
+        > depois rode $ node src/queue.js , vai da erro pq nao tem o sucrase, entao foi criado um novo script no package.json ( veja o arquivo )
+        > agora para executar o 'esquema' de fila use, $ yarn queue
+        > MOMENTO TRANSCEDENCIA {
+            > comando para buildar a img redix no docker > $ docker run --name redisbarber -p 6379:6379 -d -t redis:alpine
+            > o redis utilizado nesse projeto foi instalado em uma maquina linux no azure, para configurar a conexao para o localhost onde esta rodando o projeto, foi necessario abrir um tunel
+            > ssh -L 6379:127.0.0.1:6379 usuario@52.191.248.216 -N
+        }
+        tratamento de erros {
+            > antes de dar o 'process'( em Queue.js ), pode-se cadastrar para ouvir um 'evento', no caso sera cadastrado para ouvir o evento de falha ( veja o arquivo )
+            > depois disso, cria-se a funcao para 'ver/tratar' o erro
+        }
+    }
+
+    >>>>> "get" antes de funções( get olaMundo() ), é como se estivesse declarando uma variavel key, é se for necessario chamar essa variavel em outro lugar, basta fazer Classe.olaMundo, sem declarar ()'parenteses', que vai conseguir pegar o valor
+
+    -- tratamento/monitoramento de erros {
+        > nesse projeto, a ferramenta utilizada foi sentry
+        > https://sentry.io/ << login com github, aleffbruno
+        > $ yarn add @sentry/node@5.7.0
+        > a implementação do sentry, estao dentro de app.js ( veja o arquivo )
+        > foi criado um arquivo de configuração do sentry, dentro de src/config ( obs: o 'dns', pode ser encontrado no painel de configurações do projeto no site sentry.io)
+        >>>>> No express, controllers com metodos async, por padrao, os erros que acontecem dentro dos metodos o express nao consegue pegar, com isso nao enviando para o sentry
+        > para corrigir esse comportamento do express com async, instale $ yarn add express-async-errors
+        > ATENÇÃO: O "import 'express-async-errors'" deve vir antes do import das rotas ( em app.js )
+        > tambem é necessario criar um novo middleware de erro, que ira ser enviado para o front-end
+        > foi instalado $ yarn add youch, que faz uma tratativa de erro melhor para o desenvolvedor, é foi utilizado no middleware de erro que ira ser enviado para o front-end
+        > USE O SENTRY SOMENTE EM PROD
+    }
+
+    -- variaveisDeAmbiente {
+        > cria-se um arquivo .env na raiz do projeto, nesse arquivo é onde estarão as variaveis
+        > dica: crie um .env-example, apenas para preecher as variaveis em cada ambiente
+        > $ yarn add dotenv
+        > importe a lib dotenv em app.js, src/queue.js, config/database.js(atente-se, pois nesse arquivo a sintaxe import nao funciona, sendo necessario usar require)
+        > com isso, todas as variaveis ambientes serão colocadas dentro de 'process.env' ( exemplo: process.env.DB_HOST)
+    }
+
+    -- cors {
+        > permite/da acesso que outras aplicações acessem nossa API
+        > $ yarn add cors
+        > importe dentro de app.js
+        > use o cors como middleware, ex: this.server.use(cors()) , o cors tb aceita um obj de configuração
+    }
+}
+
+Javascript {
+    -- lidando com cor dentro do JS {
+        > $ yarn add polished
+    }
+
+    -- internacionalização / formatando currency {
+        > foi criado uma pasta/arquivo em src/util/format.js ( veja o arquivo )
+    }
+}
+
+APIs {
+    -- API fake para dev/testes {
+        > $ yarn add json-server -D
+        > yarn json-server {nome_do_aquivo.json} -p {numero_porta} -w 
+        > no cenario atual ficaria : yarn json-server server.json -p 3333 -w
+        > um parametro legal seria o '-d {milesegundos}', ele dá um delay nas chamadas, isso é bpm para testes asyncronos
+    }
+}
